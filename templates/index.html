@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Smart Garden Monitoring System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+      body {
+        background: #e8f5e9;
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      .matrix-container {
+        background: #f0f0f0;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-family: monospace;
+      }
+
+      .matrix-display {
+        white-space: pre;
+        background: #333;
+        color: #0f0;
+        padding: 10px;
+        border-radius: 5px;
+      }
+
+      .category {
+        margin-bottom: 30px;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .category-title {
+        font-size: 24px;
+        color: #2e7d32;
+        margin-bottom: 15px;
+      }
+
+      .plants-container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .plant {
+        position: relative;
+        width: 180px;
+        height: 220px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        background: #f5f5f5;
+      }
+
+      .plant-image {
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+        position: relative;
+        border-radius: 8px;
+      }
+
+      .plant-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .plant-image-wrapper {
+        position: absolute;
+        top: 30px;
+      }
+
+      .tap {
+        width: 40px;
+        height: 40px;
+        background: #666;
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+        z-index: 10;
+      }
+
+      .tap.on {
+        background: #2196f3;
+      }
+
+      .water-flow {
+        position: absolute;
+        width: 20px;
+        height: 60px;
+        left: 50%;
+        top: 20px;
+        transform: translateX(-50%);
+        display: none;
+        z-index: 5;
+      }
+
+      .water-drop {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #2196f3;
+        border-radius: 50%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+      }
+
+      .water-drop:nth-child(1) {
+        animation: dropWater 1s infinite;
+        animation-delay: 0s;
+      }
+      .water-drop:nth-child(2) {
+        animation: dropWater 1s infinite;
+        animation-delay: 0.3s;
+      }
+      .water-drop:nth-child(3) {
+        animation: dropWater 1s infinite;
+        animation-delay: 0.6s;
+      }
+
+      @keyframes dropWater {
+        0% {
+          top: 0;
+          opacity: 1;
+        }
+        100% {
+          top: 60px;
+          opacity: 0;
+        }
+      }
+
+      .plant-name {
+        position: absolute;
+        font-weight: bold;
+        z-index: 5;
+        bottom: 5px;
+        left: 10px;
+      }
+
+      .status {
+        font-size: 0.9em;
+        color: #666;
+        position: absolute;
+        bottom: 5px;
+        right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Smart Garden Monitoring System</h1>
+
+    <div class="matrix-container">
+      <h3>Plant Names Matrix:</h3>
+      <div id="namesMatrix" class="matrix-display"></div>
+
+      <h3>Plant Status Matrix:</h3>
+      <div id="statusMatrix" class="matrix-display"></div>
+    </div>
+
+    <div id="garden"></div>
+    
+
+    <script>
+      const plant_img_urls = {
+        Basil: "{{ url_for('static', filename='images/basil.png') }}",
+        Beans: "{{ url_for('static', filename='images/beans.png') }}",
+        beetroot: "{{ url_for('static', filename='images/beetroot.png') }}",
+        Carrot: "{{ url_for('static', filename='images/carrot.jpg') }}",
+        Tomato: "{{ url_for('static', filename='images/tomato.png') }}",
+      };
+
+      // Configuration for categories and plants
+      function generateGardenBeds(bedCount, plants, shuffle = false) {
+        function shuffleArray(array) {
+          return array
+            .map((item) => ({ item, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ item }) => item);
+        }
+
+        const categories = Array.from({ length: bedCount }, (_, index) => ({
+          name: `Bed ${index + 1}`,
+          plants: shuffle ? shuffleArray([...plants]) : [...plants],
+        }));
+
+        return categories;
+      }
+
+      const bedCount = 5;
+      const plants = ["Basil", "Beans", "beetroot", "Carrot", "Tomato"];
+      const shuffle = true;
+
+      // const categories = generateGardenBeds(bedCount, plants, shuffle);
+      const categories = [
+        {
+          name: "Bed 1",
+          plants: ["Tomato", "beetroot", "Basil", "Beans", "Carrot"] ,
+         
+        },
+        {
+          name: "Bed 2",
+          plants:  ["Beans", "Basil", "Carrot", "beetroot", "Tomato"],
+        },
+        {
+          name: "Bed 3",
+          plants: ["Tomato", "beetroot", "Beans", "Basil", "Carrot"],
+        },
+        {
+          name: "Bed 4",
+          plants: ["beetroot", "Basil", "Tomato", "Beans", "Carrot"],
+        },
+        {
+          name: "Bed 5",
+          plants: ["Basil", "Beans", "Carrot", "Tomato", "beetroot"],
+        },
+      ];
+
+      // Initialize matrices
+      const namesMatrix = categories.map((category) => category.plants);
+      let statusMatrix = categories.map((category) =>
+        category.plants.map(() => 0)
+      );
+
+      // Display names matrix
+      function displayNamesMatrix() {
+        const namesDisplay = $("#namesMatrix");
+        let matrixText = namesMatrix.map((row) => row.join(" | ")).join("\n");
+        namesDisplay.text(matrixText);
+      }
+
+      // Display status matrix
+      function displayStatusMatrix() {
+        const statusDisplay = $("#statusMatrix");
+        let matrixText = statusMatrix.map((row) => row.join(" | ")).join("\n");
+        statusDisplay.text(matrixText);
+      }
+
+      function updateStatusFromServer() {
+        // statusMatrix = statusMatrix.map((row) =>
+        //   row.map(() => (Math.random() > 0.5 ? 1 : 0))
+        // );
+        $.ajax({
+          url: "/get_status",
+          method: "GET",
+          success: function (response) {
+            statusMatrix = response;
+            displayStatusMatrix();
+            updateGardenStatus();
+          },
+          error: function () {
+            console.error("Failed to fetch status from server");
+          },
+        });
+      }
+
+      // Create garden with dynamic status
+      function createGarden() {
+        const garden = $("#garden");
+        garden.empty();
+
+        categories.forEach((category, catIndex) => {
+          const categoryDiv = $("<div>").addClass("category");
+          const categoryTitle = $("<div>")
+            .addClass("category-title")
+            .text(category.name);
+          const plantsContainer = $("<div>").addClass("plants-container");
+
+          category.plants.forEach((plant, plantIndex) => {
+            const plantDiv = $("<div>").addClass("plant");
+            const plantImage = $("<div>").addClass("plant-image");
+
+            // Add plant-specific image
+            const imageWrapper = $("<div>").addClass("plant-image-wrapper"); // Create a wrapper div
+            const img = $("<img>")
+              .attr("src", plant_img_urls[plant] || "/api/placeholder/150/150")
+              .attr("alt", plant);
+
+            imageWrapper.append(img); // Wrap the image inside the wrapper
+            plantImage.append(imageWrapper); // Append the wrapper to plantImage
+
+            const pipe = $("<div>").addClass("pipe");
+            const tap = $("<div>")
+              .addClass("tap")
+              .attr("data-category", catIndex)
+              .attr("data-plant", plantIndex)
+              .attr("data-status", statusMatrix[catIndex][plantIndex]);
+
+            const waterFlow = $("<div>").addClass("water-flow");
+            for (let i = 0; i < 3; i++) {
+              waterFlow.append($("<div>").addClass("water-drop"));
+            }
+
+            plantImage.prepend(pipe, tap, waterFlow);
+
+            const plantName = $("<div>").addClass("plant-name").text(plant);
+            const status = $("<div>")
+              .addClass("status")
+              .text(
+                `Water: ${statusMatrix[catIndex][plantIndex] ? "ON" : "OFF"}`
+              );
+
+            plantDiv.append(plantImage, plantName, status);
+            plantsContainer.append(plantDiv);
+          });
+
+          categoryDiv.append(categoryTitle, plantsContainer);
+          garden.append(categoryDiv);
+        });
+
+        // Initial matrix displays
+        displayNamesMatrix();
+        displayStatusMatrix();
+      }
+
+      // Update garden status based on matrix
+      function updateGardenStatus() {
+        $(".plant").each(function () {
+          const tap = $(this).find(".tap");
+          const status = $(this).find(".status");
+          const waterFlow = $(this).find(".water-flow");
+
+          const catIndex = tap.data("category");
+          const plantIndex = tap.data("plant");
+          const currentStatus = statusMatrix[catIndex][plantIndex];
+
+          // Update tap and water flow
+          tap.toggleClass("on", currentStatus === 1);
+          status.text(`Water: ${currentStatus ? "ON" : "OFF"}`);
+
+          if (currentStatus) {
+            waterFlow.show();
+          } else {
+            waterFlow.hide();
+          }
+        });
+      }
+
+      // Document ready
+      $(document).ready(function () {
+        createGarden();
+
+        // Update status every 5 seconds
+        setInterval(updateStatusFromServer, 2000);
+      });
+    </script>
+  </body>
+</html>
